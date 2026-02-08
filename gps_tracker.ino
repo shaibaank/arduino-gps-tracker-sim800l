@@ -1,87 +1,64 @@
-/*
- * Arduino GPS Tracker with SIM800L
- * 
- * Sends Google Maps location via SMS every 10 minutes
- * 
- * Hardware:
- * - Arduino UNO
- * - SIM800L GSM Module (4.0-4.2V external power!)
- * - Neo-6M GPS Module
- * 
- * Connections:
- * GPS TX  -> D4
- * GPS RX  -> D3
- * SIM TX  -> D7
- * SIM RX  -> D8
- */
-
 #include <SoftwareSerial.h>
-#include <TinyGPS++.h>
-
-// GPS serial (RX, TX)
-SoftwareSerial gpsSerial(4, 3);
-
-// SIM800L serial (RX, TX)
-SoftwareSerial sim800l(7, 8);
-
-TinyGPSPlus gps;
-
-String phoneNumber = "+91XXXXXXXXXX"; // Replace with your phone number
-
-unsigned long lastSMSTime = 0;
-const unsigned long interval = 600000; // 10 minutes in milliseconds
-
+#include <TinyGPS.h>
+// Pin Definitions
+const int pin = 9; // Button pin
+int state = 0; // To track SMS sending state
+float gpslat, gpslon; // Variables to store GPS coordinates
+TinyGPS gps;
+SoftwareSerial sgps(8, 9); // GPS module RX, TX
+SoftwareSerial sgsm(2, 3); // GSM module RX, TX
 void setup() {
-  Serial.begin(9600);
-  gpsSerial.begin(9600);
-  sim800l.begin(9600);
-
-  delay(3000);
-
-  Serial.println("Initializing SIM800L...");
-  sim800l.println("AT");
-  delay(1000);
-  sim800l.println("AT+CMGF=1");  // Set SMS to text mode
-  delay(1000);
-  
-  Serial.println("GPS Tracker Started");
-  Serial.println("Waiting for GPS fix...");
+pinMode(pin, INPUT); // Button input
+sgsm.begin(9600); // Start GSM communication
+sgps.begin(9600); // Start GPS communication
+Serial.begin(9600); // Debugging on Serial Monitor
+Serial.println("System Initialized. Waiting for GPS fix...");
 }
-
 void loop() {
-  // Read GPS data
-  while (gpsSerial.available()) {
-    gps.encode(gpsSerial.read());
-  }
-
-  if (gps.location.isValid()) {
-    if (millis() - lastSMSTime > interval) {
-      sendLocationSMS();
-      lastSMSTime = millis();
-    }
-  }
+sgps.listen(); // Ensure GPS module is active
+while (sgps.available()) {
+char c = sgps.read(); // Read data from GPS
+if (gps.encode(c)) { // Parse GPS data
+gps.f_get_position(&gpslat, &gpslon); // Get latitude and longitude
 }
-
-void sendLocationSMS() {
-  double lat = gps.location.lat();
-  double lng = gps.location.lng();
-
-  String mapsLink = "https://maps.google.com/?q=";
-  mapsLink += String(lat, 6);
-  mapsLink += ",";
-  mapsLink += String(lng, 6);
-
-  String message = "Live Location:\n" + mapsLink;
-
-  Serial.println("Sending SMS...");
-  Serial.println(message);
-
-  sim800l.println("AT+CMGS=\"" + phoneNumber + "\"");
-  delay(1000);
-  sim800l.print(message);
-  delay(500);
-  sim800l.write(26); // CTRL+Z to send
-  delay(5000);
-
-  Serial.println("SMS Sent!");
 }
+// Debugging: Print GPS data to the Serial Monitor
+if (gpslat != TinyGPS::GPS_INVALID_F_ANGLE && gpslon !=
+TinyGPS::GPS_INVALID_F_ANGLE) {
+Serial.print("Latitude: "); Serial.println(gpslat, 6);
+Serial.print("Longitude: "); Serial.println(gpslon, 6);
+} else {
+Serial.println("No valid GPS data yet.");
+}
+// Check if button is pressed and SMS hasn't been sent
+if (digitalRead(pin) == HIGH && state == 0) {
+sgsm.listen(); // Ensure GSM module is active
+// Send SMS
+sendSMS();
+state = 1; // Update state to prevent multiple SMS
+33
+}
+// Reset state when button is released
+if (digitalRead(pin) == LOW) {
+state = 0;
+}
+delay(100); // Small delay for debounce
+}
+// Function to send SMS with GPS location
+void sendSMS() {
+sgsm.print("\r"); // Wake GSM module
+delay(1000);
+sgsm.print("AT+CMGF=1\r"); // Set SMS mode
+delay(1000);
+// Replace XXXXXXXXXX with a valid phone number
+sgsm.print("AT+CMGS=\"+91XXXXXXXXXX\"\r");
+delay(1000);
+// The SMS content with Google Maps link
+sgsm.print("https://www.google.com/maps/?q=");
+sgsm.print(gpslat, 6);
+sgsm.print(",");
+sgsm.print(gpslon, 6);
+delay(1000);
+sgsm.write(0x1A); // End SMS with Ctrl+Z
+delay(3000);
+Serial.println("SMS Sent!");

@@ -4,12 +4,27 @@ A simple GPS tracker using Arduino UNO, SIM800L GSM module, and Neo-6M GPS. Send
 
 No WhatsApp, no server, no Twilio—just plain GSM SMS.
 
-## Hardware Requirements
+## Components
 
-- Arduino UNO
-- SIM800L GSM Module (requires proper 4.0–4.2V power supply)
-- Neo-6M GPS Module
-- External power supply for SIM800L (must handle 2A peak current)
+| S.No | Component                  | Value/Model | Qty |
+|------|----------------------------|-------------|-----|
+| 1    | Arduino UNO                | -           | 1   |
+| 2    | USB Cable Type A to B      | -           | 1   |
+| 3    | GPS Module                 | NEO-6M      | 1   |
+| 4    | GSM Module                 | SIM800L     | 1   |
+| 5    | Power Adapter for Arduino  | 9V          | 1   |
+| 6    | Li-ion Battery for SIM800L | 3.7V        | 1   |
+| 7    | Jumper Wires               | -           | 1   |
+
+## System Design
+
+![System Design](images/system_design.png)
+
+The system consists of an Arduino UNO connected to a NEO-6M GPS module for location data and a SIM800L GSM module for sending SMS. The SIM800L is powered by an external Li-ion battery to meet its 2A peak current requirement.
+
+## Circuit Design
+
+![Circuit Design](images/circuit_design.png)
 
 ## Required Libraries
 
@@ -74,3 +89,9 @@ Clicking the link opens the location directly in Google Maps.
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first.
+
+## Appendix
+
+Scan the QR code below to watch the working demo of the project:
+
+![Demo Video QR Code](images/demo_qr.png)
